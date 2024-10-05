@@ -1,27 +1,26 @@
 package test;
 
 import java.io.*;
-import java.util.*;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Scanner;
 
-public class FileReadWrite {
-        Logger logger = Logger.getLogger(FileReadWrite.class);
-    public static void main(String[] args) throws FileNotFoundException {
-        logger.info("");
+public class QAReleaseValidator_V2 {
+
+    public static void main(String[] args) {
+
         String inputFilePath = "releases.txt";
         String outputFilePath = "solution.txt";
         try {
             List<Release> selectedReleases = getMaxReleases(inputFilePath);
             writeOutput(outputFilePath, selectedReleases);
         } catch (IOException e) {
-            System.err.println(STR."Error reading or writing files: \{e.getMessage()}");
+            System.out.println("An error occurred.");
         }
     }
 
-    static List<Release> getMaxReleases(String filePath) throws FileNotFoundException {
+    static List<Release> getMaxReleases(String filePath) {
 
         List<Release> releases = new ArrayList<>();
 
@@ -52,18 +51,46 @@ public class FileReadWrite {
                 System.out.println("Sorted last release day = " + release.deliveryDay);
 
             }
+
+            // Sort releases by their delivery day (to ensure we validate in order)
+            releases.sort(Comparator.comparingInt(r -> r.deliveryDay));
+
             // Select maximum number of non-overlapping releases
             List<Release> selectedReleases = new ArrayList<>();
-            int lastEndTime = 0;
+
+            // Array to track occupied days in the sprint (1-10)
+            boolean[] occupiedDays = new boolean[11];  // Index 0 is unused for convenience
 
             for (Release release : releases) {
-                if (release.deliveryDay > lastEndTime) {
-                    selectedReleases.add(release);
-                    lastEndTime = release.getEndDay();
+                int startTime = release.deliveryDay;
+
+                // Check if we can schedule this release starting from its delivery day
+                while (startTime <= 10 && occupiedDays[startTime]) {
+                    startTime++;  // Move to the next day if occupied
+                }
+
+                // Check if there is enough space to validate this release starting from startTime
+                if (startTime <= 10 && startTime + release.validationDays - 1 <= 10) {
+                    boolean canSchedule = true;
+
+                    // Check if all required days are free
+                    for (int i = startTime; i < startTime + release.validationDays; i++) {
+                        if (occupiedDays[i]) {
+                            canSchedule = false;
+                            break;  // Break if any required day is occupied
+                        }
+                    }
+
+                    // If all required days are free, schedule this release
+                    if (canSchedule) {
+                        selectedReleases.add(new Release(startTime, release.validationDays));
+                        for (int i = startTime; i < startTime + release.validationDays; i++) {
+                            occupiedDays[i] = true;  // Mark these days as occupied
+                        }
+                    }
                 }
             }
 
-            sc.close();
             return selectedReleases;
         } catch (FileNotFoundException e) {
             System.out.println("File not found: " + e.getMessage());
@@ -71,7 +98,7 @@ public class FileReadWrite {
         return releases;
     }
 
-    public static void writeOutput(String filePath, List<Release> selectedReleases) throws IOException {
+    static void writeOutput(String filePath, List<Release> selectedReleases) throws IOException {
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(filePath))) {
             writer.write(String.valueOf(selectedReleases.size())); // Writes the max number of releases to the solution file
             writer.newLine();
@@ -80,8 +107,8 @@ public class FileReadWrite {
                 writer.newLine();
             }
         } catch (Exception e) {
-            System.out.println(STR."Error has been occurred while writing = \{e.getMessage()}");
-            e.printStackTrace();
+            System.out.println("Error has been occurred while writing = " + e.getMessage());
         }
     }
 }
+
