@@ -30,14 +30,10 @@ public class QAReleaseValidator {
                 String line = sc.nextLine();
                 System.out.println("line " + index + "= " + line);
                 index++;
-                // Parse the line to extract deliveryDay and validationDays...
                 String[] parts = line.split(" ");
                 int deliveryDay = Integer.parseInt(parts[0]);
                 int validationDays = Integer.parseInt(parts[1]);
-                System.out.println("deliveryDay = " + deliveryDay);
-                System.out.println("validationDays = " + validationDays);
 
-                // Only consider valid releases that can be completed within 10 days and provided integers are guaranteed
                 if (deliveryDay + validationDays - 1 <= 10 && deliveryDay >= 1 && validationDays >= 1) {
                     releases.add(new Release(deliveryDay, validationDays));
                 } else {
@@ -46,10 +42,9 @@ public class QAReleaseValidator {
 
             }
 
-            // Sort releases by their delivery day and validation days using a custom method
             releases = sortReleasesByDeliveryAndValidation(releases);
 
-            // Select maximum number of non-overlapping releases
+            // Selecting maximum number of non-overlapping releases
             List<Release> selectedReleases = new ArrayList<>();
             int lastEndTime = 0;
 
@@ -68,35 +63,36 @@ public class QAReleaseValidator {
         return releases;
     }
 
-    // Method to sort releases by their delivery day and then by validation days using a for-each loop
+
     private static List<Release> sortReleasesByDeliveryAndValidation(List<Release> releases) {
         List<Release> sortedReleases = new ArrayList<>();
 
         while (!releases.isEmpty()) {
-            Release minRelease = releases.get(0); // Start with the first release
+            Release minRelease = releases.getFirst();
 
-            // Use a for-each loop to find the release with the minimum delivery day
             for (Release release : releases) {
                 if (release.deliveryDay < minRelease.deliveryDay ||
                         (release.deliveryDay == minRelease.deliveryDay && release.validationDays < minRelease.validationDays)) {
-                    minRelease = release; // Update minRelease if a smaller delivery day or smaller validation days is found
+                    minRelease = release; // Updates minRelease if a smaller delivery day or smaller delivery day + validation days is found
                 }
             }
-
-            // Add the found minimum release to the sorted list
             sortedReleases.add(minRelease);
-            releases.remove(minRelease); // Remove it from the original list
+            releases.remove(minRelease);
         }
 
-        return sortedReleases; // Return the sorted list
+        System.out.println("Sorted Releases:");
+        for (Release release : sortedReleases) {
+            System.out.println("Delivery Day: " + release.getDeliveryDay() + ", End Day: " + release.getEndDay());
+        }
+        return sortedReleases;
     }
 
     static void writeOutput(String filePath, List<Release> selectedReleases) throws IOException {
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(filePath))) {
-            writer.write(String.valueOf(selectedReleases.size())); // Writes the max number of releases to the solution file
+            writer.write(String.valueOf(selectedReleases.size()));
             writer.newLine();
             for (Release release : selectedReleases) {
-                writer.write(release.deliveryDay + " " + release.getEndDay()); // Write delivery and end days
+                writer.write(release.deliveryDay + " " + release.getEndDay());
                 writer.newLine();
             }
         } catch (Exception e) {

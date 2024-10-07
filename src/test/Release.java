@@ -12,5 +12,9 @@ class Release {
     public int getEndDay() {
         return deliveryDay + validationDays - 1; // Calculates the end day
     }
+
+    public String getDeliveryDay() {
+        return Integer.toString(deliveryDay);
+    }
 }
 

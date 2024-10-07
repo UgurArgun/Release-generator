@@ -6,7 +6,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Scanner;
 
-public class QAReleaseValidator_V2 {
+public class QAReleaseValidatorWithPostpone {
 
     public static void main(String[] args) {
 
@@ -32,12 +32,9 @@ public class QAReleaseValidator_V2 {
                 index++;
                 String line = sc.nextLine();
                 System.out.println("line " + index + "= " + line);
-                // Parse the line to extract deliveryDay and validationDays...
                 String[] parts = line.split(" ");
                 int deliveryDay = Integer.parseInt(parts[0]);
                 int validationDays = Integer.parseInt(parts[1]);
-
-                // Only consider valid releases that can be completed within 10 days and provided integers are guaranteed
 
                 if (deliveryDay + validationDays - 1 <= 10 && deliveryDay >= 1 && validationDays >= 1) {
                     releases.add(new Release(deliveryDay, validationDays));
@@ -45,43 +42,52 @@ public class QAReleaseValidator_V2 {
                     System.out.println("Provided line " + (index) + " is invalid, as it exceeds the 10-day deadline or provided day numbers are invalid.");
                 }
 
-            }   // Sort releases by iteration according to their end day
-            releases.sort(Comparator.comparingInt(Release::getEndDay));
-            for (Release release : releases) {
-                System.out.println("Sorted last release day = " + release.deliveryDay);
+            }
+            List<Release> sortedReleases = new ArrayList<>();
+
+            while (!releases.isEmpty()) {
+                Release minRelease = releases.getFirst();
+
+                for (Release release : releases) {
+                    if (release.deliveryDay < minRelease.deliveryDay || (release.deliveryDay == minRelease.deliveryDay && release.validationDays < minRelease.validationDays)) {
+                        minRelease = release; // Updates minRelease if a smaller delivery day or smaller delivery day + validation days is found
+                    }
+                }
+
+                sortedReleases.add(minRelease);
+                releases.remove(minRelease);
 
             }
+            System.out.println("Sorted Releases:");
+            for (Release release : sortedReleases) {
+                System.out.println("Delivery Day: " + release.getDeliveryDay() + ", End Day: " + release.getEndDay());
+            }
 
-            // Sort releases by their delivery day (to ensure we validate in order)
-            releases.sort(Comparator.comparingInt(r -> r.deliveryDay));
-
-            // Select maximum number of non-overlapping releases
             List<Release> selectedReleases = new ArrayList<>();
 
-            // Array to track occupied days in the sprint (1-10)
-            boolean[] occupiedDays = new boolean[11];  // Index 0 is unused for convenience
+            boolean[] occupiedDays = new boolean[11];
 
-            for (Release release : releases) {
+            for (Release release : sortedReleases) {
                 int startTime = release.deliveryDay;
 
-                // Check if we can schedule this release starting from its delivery day
+                // Checks if we can schedule this release starting from its delivery day
                 while (startTime <= 10 && occupiedDays[startTime]) {
                     startTime++;  // Move to the next day if occupied
                 }
 
-                // Check if there is enough space to validate this release starting from startTime
+                // Checks if there is enough space to validate this release starting from startTime
                 if (startTime <= 10 && startTime + release.validationDays - 1 <= 10) {
                     boolean canSchedule = true;
 
-                    // Check if all required days are free
+                    // Checks if all required days are free
                     for (int i = startTime; i < startTime + release.validationDays; i++) {
                         if (occupiedDays[i]) {
                             canSchedule = false;
-                            break;  // Break if any required day is occupied
+                            break;  // Breaks if any required day is occupied
                         }
                     }
 
-                    // If all required days are free, schedule this release
+                    // If all required days are free, schedules this release
                     if (canSchedule) {
                         selectedReleases.add(new Release(startTime, release.validationDays));
                         for (int i = startTime; i < startTime + release.validationDays; i++) {
